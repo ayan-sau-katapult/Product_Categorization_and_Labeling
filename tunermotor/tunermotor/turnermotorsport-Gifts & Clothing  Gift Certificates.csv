@@ -1,0 +1,168 @@
+product-img-link href,product-img-link src,cleanDesc,brand-image src,part-info,part-info 2,price,text-success,btn,cart-btn-wrapper,cart-btn-wrapper 2,cart-btn-wrapper 3,short-description,short-description 2,starting-at
+https://www.turnermotorsport.com/p-341841-turner-motorsport-gift-card-100/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/898702_x300.jpg,Turner Motorsport Gift Card - $100,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Turner%20Gift%20Cards.gif,341841,GC100TMS,$100.00,Free Shipping,Add to Cart,".product-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-card img {
+    order: 1;
+    border: 1px solid var(--pc-border-color, var(--input-border-color, #ccc));
+    margin-bottom: 1rem;
+    max-width: 100%;
+}
+
+.product-card h5 {
+    order: 2;
+    margin: 0 0 .5rem;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.cart-modal .btn-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-gap: 1rem;
+    margin: 1.5rem 0 0;
+}
+
+.cart-modal .warning-msg {
+    border: 1px solid var(--color-warning, var(--warning));
+    color: var(--color-warning, var(--warning));
+    border-radius: var(--default-border-radius);
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 36rem) {
+    .cart-modal .btn-wrapper {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}","const cartBtns = document.getElementsByClassName('js-cart-btn');
+const cartQty = Number(0);
+let cartModal, errorMsg;
+
+for ( const btn of cartBtns ) {
+    const badge = btn.querySelector('.js-cart-qty');
+    badge.addEventListener('animationend', () => {
+        badge.classList.remove('updated');
+    });
+}
+
+const initMiniCart = () => {
+    const cartTemplate = document.getElementById('mini-cart');
+    const miniCart = cartTemplate.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(miniCart);
+    cartModal = document.getElementById('cartModal');
+    cartTemplate.remove();
+};
+
+const setCart = async ( id, isPDK = false ) => {
+    const params = (isPDK) ? addPDKToCart(id) : false;
+    const result = await addToCart(id, params);
+    const productCard = cartModal.querySelector('.product-card');
+    const cardElements = {
+        img: productCard.querySelector('img'),
+        title: productCard.querySelector('.product-title'),
+    }
+
+    if ( errorMsg ) errorMsg.remove();
+
+    if ( result.data[0].error ) {
+        errorMsg = document.createElement('div');
+        errorMsg.classList.add('msg', 'warning-msg');
+        errorMsg.innerHTML = result.data[0].error;
+        cartModal.querySelector('.modal-title').innerHTML = 'Oops, There Was An Error!';
+        cartModal.querySelector('.modal-content').insertBefore(errorMsg, productCard);
+    } else {
+        const productData = result.data[0].cartItem;
+        cartModal.querySelector('.modal-title').innerHTML = `T# ${productData.productID} (Qty ${productData.qtyAdded}) Added to Cart`;
+        if ( productData.mainImage) {
+            cardElements.img.src = `https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/${productData.mainImage}_x300.jpg`;
+        } else {
+            cardElements.img.src = 'https://1c2a8a2161d644d95009-22d26b38e78c173d82b3a9a01c774ffa.ssl.cf1.rackcdn.com/skins/Skin_1/images/tms_box_no_image.jpg';
+        }
+        cardElements.img.setAttribute('alt', productData.clean_description);
+        cardElements.title.innerHTML = productData.clean_description;
+    }
+
+    return result;
+};
+
+const updateCartBtn = (btn, qty) => {
+    if ( qty != 0 ) {
+        const badge = btn.querySelector('.js-cart-qty');
+        badge.classList.add('updated');
+        const newQty = Number(badge.innerHTML) + qty;
+        badge.innerHTML = newQty;
+        btn.setAttribute('title', `You have ${newQty} item(s) in your cart`);
+    }
+};
+
+const showCart = ( response, resolve ) => {
+    const $cartModal = $('#cartModal');
+    $cartModal.modal('show');
+    $cartModal.one('shown.bs.modal', resolve );
+    for ( const btn of cartBtns ) {
+        if ( response.data[0].cartItem ) {
+            updateCartBtn(btn, Number(response.data[0].cartItem.qtyAdded));
+        }
+    }
+};
+
+window.addEventListener('atcReady', initMiniCart, {once: true});","let pdkCart = false;
+
+    
+
+    const atcFunc = ( pdkCart ) ? 'addPDKToCart' : 'addToCart';
+    let atcBtns, activeBtn;
+
+    const initATC = () => {
+        atcBtns = Array.from( document.getElementsByClassName('js-atc-btn') );
+        atcBtns.forEach( btn => {
+            btn.addEventListener('click', e => {
+                atcBtns.forEach( atcBtn => { disableBtn(atcBtn) } );
+                activeBtn = e.target;
+                setLoading(activeBtn);
+                if ( useMiniCart ) {
+                    setCart( activeBtn.dataset.productid, pdkCart )
+                    .then( data => {
+                        let pShowCart = new Promise( (resolve, reject) => {
+                            showCart( data, resolve );
+                        } );
+                        pShowCart.then( () => {
+                            atcBtns.forEach( btn => { enableBtn(btn) } );
+                            clearLoading(activeBtn);
+                        } );
+                    });
+                } else {
+                    window[atcFunc]( activeBtn.dataset.productid );
+                }
+            });
+            enableBtn(btn);
+            clearLoading(btn);
+        });
+    };
+
+    const setLoading = btn => {
+        btn.classList.add('loading');
+    };
+
+    const clearLoading = btn => {
+        btn.classList.remove('loading');
+    };
+
+    const disableBtn = btn => {
+        btn.disabled = true;
+    };
+
+    const enableBtn = btn => {
+        btn.disabled = false;
+    };
+
+    window.addEventListener( 'atcReady', initATC, {once: true} );","Turner Motorsport has Gift Cards available for everyone on your shopping list! Simply add to cart, and you're offer to the races. Each Turner Motorsport Gift Card features a dramatic photograph of a Turner Motorsport BMW.","This gift card is valued at $100 - we also offer gift cards in $10, $25, and $50 denominations.",
+https://www.turnermotorsport.com/p-341838-turner-motorsport-gift-card-25/,,Turner Motorsport Gift Card - $25,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Turner%20Gift%20Cards.gif,341838,GC25TMS,$25.00,Free Shipping,Add to Cart,,,,"Turner Motorsport has Gift Cards available for everyone on your shopping list! Simply add to cart, and you're offer to the races. Each Turner Motorsport Gift Card features a dramatic photograph of a Turner Motorsport BMW.","This gift card is valued at $25 - we also offer gift cards in $10, $50, and $100 denominations.",
+https://www.turnermotorsport.com/p-341840-turner-motorsport-gift-card-50/,,Turner Motorsport Gift Card - $50,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Turner%20Gift%20Cards.gif,341840,GC50TMS,$50.00,Free Shipping,Add to Cart,,,,"Turner Motorsport has Gift Cards available for everyone on your shopping list! Simply add to cart, and you're offer to the races. Each Turner Motorsport Gift Card features a dramatic photograph of a Turner Motorsport BMW.","This gift card is valued at $50 - we also offer gift cards in $10, $25, and $100 denominations.",
+https://www.turnermotorsport.com/p-350917-turner-motorsport-gift-cards/,,Turner Motorsport Gift Cards,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Turner%20Motorsport.gif,350917,TMSGC,$10.00,Free Shipping on orders $49 and up,View More Info,,,,"Turner Motorsport has Gift Cards available for everyone on your shopping list! They are available in any amount you choose - simply select your denomination, add to cart, and you're off to the races.",Each Turner Motorsport Gift Card features a dramatic photograph of a Turner Motorsport BMW.,Starting at
+https://www.turnermotorsport.com/p-343867-turner-motorsport-gift-card-10/,,Turner Motorsport Gift Card - $10,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Turner%20Gift%20Cards.gif,343867,GC10TMS,$10.00,Free Shipping,Add to Cart,,,,"Turner Motorsport has Gift Cards available for everyone on your shopping list! Simply add to cart, and you're offer to the races. Each Turner Motorsport Gift Card features a dramatic photograph of a Turner Motorsport BMW.","This gift card is valued at $10 - we also offer gift cards in $25, $50, and $100 denominations.",

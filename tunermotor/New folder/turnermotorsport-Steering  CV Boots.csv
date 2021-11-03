@@ -1,0 +1,168 @@
+product-img-link href,product-img-link src,cleanDesc,brand-image src,part-info,part-info 2,stock-status,pricesavediscount,pricecut,price,text-success,cart-btn-wrapper,cart-btn-wrapper 2,cart-btn-wrapper 3,short-description,show,show 2
+https://www.turnermotorsport.com/p-59164-33107840905-genuine-bmw-part/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/469046_x300.jpg,"Genuine BMW CV Boot Repair Kit - Outter - E60 E63/64 E82 E9X
+      ...",https://c1521972.ssl.cf0.rackcdn.com/img/brands/Genuine%20BMW.gif,59164,33107840905,"Expected Ship Date:  Oct 21, 2021",14% off MSRP,$113.63,$97.75,Free Shipping on orders $49 and up,".product-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-card img {
+    order: 1;
+    border: 1px solid var(--pc-border-color, var(--input-border-color, #ccc));
+    margin-bottom: 1rem;
+    max-width: 100%;
+}
+
+.product-card h5 {
+    order: 2;
+    margin: 0 0 .5rem;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.cart-modal .btn-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-gap: 1rem;
+    margin: 1.5rem 0 0;
+}
+
+.cart-modal .warning-msg {
+    border: 1px solid var(--color-warning, var(--warning));
+    color: var(--color-warning, var(--warning));
+    border-radius: var(--default-border-radius);
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 36rem) {
+    .cart-modal .btn-wrapper {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}","const cartBtns = document.getElementsByClassName('js-cart-btn');
+const cartQty = Number(0);
+let cartModal, errorMsg;
+
+for ( const btn of cartBtns ) {
+    const badge = btn.querySelector('.js-cart-qty');
+    badge.addEventListener('animationend', () => {
+        badge.classList.remove('updated');
+    });
+}
+
+const initMiniCart = () => {
+    const cartTemplate = document.getElementById('mini-cart');
+    const miniCart = cartTemplate.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(miniCart);
+    cartModal = document.getElementById('cartModal');
+    cartTemplate.remove();
+};
+
+const setCart = async ( id, isPDK = false ) => {
+    const params = (isPDK) ? addPDKToCart(id) : false;
+    const result = await addToCart(id, params);
+    const productCard = cartModal.querySelector('.product-card');
+    const cardElements = {
+        img: productCard.querySelector('img'),
+        title: productCard.querySelector('.product-title'),
+    }
+
+    if ( errorMsg ) errorMsg.remove();
+
+    if ( result.data[0].error ) {
+        errorMsg = document.createElement('div');
+        errorMsg.classList.add('msg', 'warning-msg');
+        errorMsg.innerHTML = result.data[0].error;
+        cartModal.querySelector('.modal-title').innerHTML = 'Oops, There Was An Error!';
+        cartModal.querySelector('.modal-content').insertBefore(errorMsg, productCard);
+    } else {
+        const productData = result.data[0].cartItem;
+        cartModal.querySelector('.modal-title').innerHTML = `T# ${productData.productID} (Qty ${productData.qtyAdded}) Added to Cart`;
+        if ( productData.mainImage) {
+            cardElements.img.src = `https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/${productData.mainImage}_x300.jpg`;
+        } else {
+            cardElements.img.src = 'https://1c2a8a2161d644d95009-22d26b38e78c173d82b3a9a01c774ffa.ssl.cf1.rackcdn.com/skins/Skin_1/images/tms_box_no_image.jpg';
+        }
+        cardElements.img.setAttribute('alt', productData.clean_description);
+        cardElements.title.innerHTML = productData.clean_description;
+    }
+
+    return result;
+};
+
+const updateCartBtn = (btn, qty) => {
+    if ( qty != 0 ) {
+        const badge = btn.querySelector('.js-cart-qty');
+        badge.classList.add('updated');
+        const newQty = Number(badge.innerHTML) + qty;
+        badge.innerHTML = newQty;
+        btn.setAttribute('title', `You have ${newQty} item(s) in your cart`);
+    }
+};
+
+const showCart = ( response, resolve ) => {
+    const $cartModal = $('#cartModal');
+    $cartModal.modal('show');
+    $cartModal.one('shown.bs.modal', resolve );
+    for ( const btn of cartBtns ) {
+        if ( response.data[0].cartItem ) {
+            updateCartBtn(btn, Number(response.data[0].cartItem.qtyAdded));
+        }
+    }
+};
+
+window.addEventListener('atcReady', initMiniCart, {once: true});","let pdkCart = false;
+
+    
+
+    const atcFunc = ( pdkCart ) ? 'addPDKToCart' : 'addToCart';
+    let atcBtns, activeBtn;
+
+    const initATC = () => {
+        atcBtns = Array.from( document.getElementsByClassName('js-atc-btn') );
+        atcBtns.forEach( btn => {
+            btn.addEventListener('click', e => {
+                atcBtns.forEach( atcBtn => { disableBtn(atcBtn) } );
+                activeBtn = e.target;
+                setLoading(activeBtn);
+                if ( useMiniCart ) {
+                    setCart( activeBtn.dataset.productid, pdkCart )
+                    .then( data => {
+                        let pShowCart = new Promise( (resolve, reject) => {
+                            showCart( data, resolve );
+                        } );
+                        pShowCart.then( () => {
+                            atcBtns.forEach( btn => { enableBtn(btn) } );
+                            clearLoading(activeBtn);
+                        } );
+                    });
+                } else {
+                    window[atcFunc]( activeBtn.dataset.productid );
+                }
+            });
+            enableBtn(btn);
+            clearLoading(btn);
+        });
+    };
+
+    const setLoading = btn => {
+        btn.classList.add('loading');
+    };
+
+    const clearLoading = btn => {
+        btn.classList.remove('loading');
+    };
+
+    const disableBtn = btn => {
+        btn.disabled = true;
+    };
+
+    const enableBtn = btn => {
+        btn.disabled = false;
+    };
+
+    window.addEventListener( 'atcReady', initATC, {once: true} );","Replacing a torn CV boot will save your CV joint from needing replaced. Once a boot develops a tear the grease begins to leak out, which causes the bearing to become dry and noisy.",,
+https://www.turnermotorsport.com/p-373055-idler-arm/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/477898_x300.jpg,Idler Arm,https://c1521972.ssl.cf0.rackcdn.com/img/brands/URO.gif,373055,32211136450,In Stock,,,$23.38,Free Shipping on orders $49 and up,,,,"The idler arm in your vehicle is a steering piece that can wear out over time. When worn out, it causes play in your steering wheel and makes driving uncomfortable. To repair this problem, replace the idler arm.",Show More,Show Less
+https://www.turnermotorsport.com/p-59165-33107840906-genuine-bmw-part/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/692080_x300.jpg,"Genuine BMW CV Boot Repair Kit - Inner - E60 E63/64 E82 E9X
+       ...",https://c1521972.ssl.cf0.rackcdn.com/img/brands/Genuine%20BMW.gif,59165,33107840906,In Stock,14% off MSRP,$161.32,$138.76,Free Shipping,,,,"Replacing a torn CV boot will save your CV joint from needing replaced. Once a boot develops a tear the grease begins to leak out, which causes the bearing to become dry and noisy.",,

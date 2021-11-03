@@ -1,0 +1,167 @@
+product-img-link href,product-img-link src,cleanDesc,brand-image src,part-info,part-info 2,stock-status,price,starting-at,text-success,btn-success,short-description,cart-btn-wrapper,cart-btn-wrapper 2,cart-btn-wrapper 3
+https://www.turnermotorsport.com/p-391871-sprint-booster-v3-drive-by-wire-enhancement-module-for-2001-bmw/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/918201_x300.jpg,"Sprint Booster V3 Drive-by-Wire Enhancement Module For 2001+ BMW
+  ...",https://c1521972.ssl.cf0.rackcdn.com/img/brands/Sprint%20Booster.gif,391871,SBBM1003,In Stock,$289.99,Starting at,Free Shipping,View More Info,"When BMW began using the ""Drive-by-wire"" throttle system in 2001, a lot of people cringed. The Drive-by-wire system uses electronics to replace the mechanical cable throttle of the past. This means the electronics between the accelerator pedal and motorized throttle must interpret what your right foot does, and ultimately decides how the engine will respond. Although advanced in it's technology and engineering, many of us agree that the Drive-by-Wire equipped BMWs feel unresponsive and lack the crisp, sharp throttle response that older BMWs had with a traditional throttle cable. That's where the Sprint Booster comes in.",,,
+https://www.turnermotorsport.com/p-638061-injen-x-pedal-pro-black-edition-throttle-controller-bmw/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/1615641_x300.jpg,Injen X-Pedal Pro Black Edition Throttle Controller - BMW,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Injen.gif,638061,PT0008B,"Inventory On Order, ETA Nov 24, 2021",$204.95,,,Add to Cart,"The X-Pedal Pro Black Edition Throttle Controller from Injen is a plug-in module that requires less than 5 minutes to install. It controls the throttle signals going into your stock ECU so that your vehicle instantly responds faster and accelerates quicker or slower and more economically depending on the selected setting! The harness plugs directly into the OE connector behind the accelerator pedal to pull 5V power and manipulate the signals going to the ECU. Installation requires no splicing or cutting of any wires and does not interfere with other onboard systems, such as electronic injection or ABS brakes systems. With 9 levels of sport mode for improved throttle response and 7 levels of ECO mode for improved efficiency, you’ll find the perfect setting to match your driving style and performance needs.",".product-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-card img {
+    order: 1;
+    border: 1px solid var(--pc-border-color, var(--input-border-color, #ccc));
+    margin-bottom: 1rem;
+    max-width: 100%;
+}
+
+.product-card h5 {
+    order: 2;
+    margin: 0 0 .5rem;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.cart-modal .btn-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-gap: 1rem;
+    margin: 1.5rem 0 0;
+}
+
+.cart-modal .warning-msg {
+    border: 1px solid var(--color-warning, var(--warning));
+    color: var(--color-warning, var(--warning));
+    border-radius: var(--default-border-radius);
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 36rem) {
+    .cart-modal .btn-wrapper {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}","const cartBtns = document.getElementsByClassName('js-cart-btn');
+const cartQty = Number(0);
+let cartModal, errorMsg;
+
+for ( const btn of cartBtns ) {
+    const badge = btn.querySelector('.js-cart-qty');
+    badge.addEventListener('animationend', () => {
+        badge.classList.remove('updated');
+    });
+}
+
+const initMiniCart = () => {
+    const cartTemplate = document.getElementById('mini-cart');
+    const miniCart = cartTemplate.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(miniCart);
+    cartModal = document.getElementById('cartModal');
+    cartTemplate.remove();
+};
+
+const setCart = async ( id, isPDK = false ) => {
+    const params = (isPDK) ? addPDKToCart(id) : false;
+    const result = await addToCart(id, params);
+    const productCard = cartModal.querySelector('.product-card');
+    const cardElements = {
+        img: productCard.querySelector('img'),
+        title: productCard.querySelector('.product-title'),
+    }
+
+    if ( errorMsg ) errorMsg.remove();
+
+    if ( result.data[0].error ) {
+        errorMsg = document.createElement('div');
+        errorMsg.classList.add('msg', 'warning-msg');
+        errorMsg.innerHTML = result.data[0].error;
+        cartModal.querySelector('.modal-title').innerHTML = 'Oops, There Was An Error!';
+        cartModal.querySelector('.modal-content').insertBefore(errorMsg, productCard);
+    } else {
+        const productData = result.data[0].cartItem;
+        cartModal.querySelector('.modal-title').innerHTML = `T# ${productData.productID} (Qty ${productData.qtyAdded}) Added to Cart`;
+        if ( productData.mainImage) {
+            cardElements.img.src = `https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/${productData.mainImage}_x300.jpg`;
+        } else {
+            cardElements.img.src = 'https://1c2a8a2161d644d95009-22d26b38e78c173d82b3a9a01c774ffa.ssl.cf1.rackcdn.com/skins/Skin_1/images/tms_box_no_image.jpg';
+        }
+        cardElements.img.setAttribute('alt', productData.clean_description);
+        cardElements.title.innerHTML = productData.clean_description;
+    }
+
+    return result;
+};
+
+const updateCartBtn = (btn, qty) => {
+    if ( qty != 0 ) {
+        const badge = btn.querySelector('.js-cart-qty');
+        badge.classList.add('updated');
+        const newQty = Number(badge.innerHTML) + qty;
+        badge.innerHTML = newQty;
+        btn.setAttribute('title', `You have ${newQty} item(s) in your cart`);
+    }
+};
+
+const showCart = ( response, resolve ) => {
+    const $cartModal = $('#cartModal');
+    $cartModal.modal('show');
+    $cartModal.one('shown.bs.modal', resolve );
+    for ( const btn of cartBtns ) {
+        if ( response.data[0].cartItem ) {
+            updateCartBtn(btn, Number(response.data[0].cartItem.qtyAdded));
+        }
+    }
+};
+
+window.addEventListener('atcReady', initMiniCart, {once: true});","let pdkCart = false;
+
+    
+
+    const atcFunc = ( pdkCart ) ? 'addPDKToCart' : 'addToCart';
+    let atcBtns, activeBtn;
+
+    const initATC = () => {
+        atcBtns = Array.from( document.getElementsByClassName('js-atc-btn') );
+        atcBtns.forEach( btn => {
+            btn.addEventListener('click', e => {
+                atcBtns.forEach( atcBtn => { disableBtn(atcBtn) } );
+                activeBtn = e.target;
+                setLoading(activeBtn);
+                if ( useMiniCart ) {
+                    setCart( activeBtn.dataset.productid, pdkCart )
+                    .then( data => {
+                        let pShowCart = new Promise( (resolve, reject) => {
+                            showCart( data, resolve );
+                        } );
+                        pShowCart.then( () => {
+                            atcBtns.forEach( btn => { enableBtn(btn) } );
+                            clearLoading(activeBtn);
+                        } );
+                    });
+                } else {
+                    window[atcFunc]( activeBtn.dataset.productid );
+                }
+            });
+            enableBtn(btn);
+            clearLoading(btn);
+        });
+    };
+
+    const setLoading = btn => {
+        btn.classList.add('loading');
+    };
+
+    const clearLoading = btn => {
+        btn.classList.remove('loading');
+    };
+
+    const disableBtn = btn => {
+        btn.disabled = true;
+    };
+
+    const enableBtn = btn => {
+        btn.disabled = false;
+    };
+
+    window.addEventListener( 'atcReady', initATC, {once: true} );"
+https://www.turnermotorsport.com/p-599385-sprint-booster-power-converter-v3/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/918201_x300.jpg,Sprint Booster Power Converter V3 - Toyota MKV A90 Supra,https://c1521972.ssl.cf0.rackcdn.com/img/brands/Sprint%20Booster.gif,599385,SBTO0063S,"Direct Ship, Expected Ship Date:  Oct 27, 2021",$306.00,,,Add to Cart,"Designed specifically to enhance acceleration in a number of popular platforms, the Sprint Booster is an aftermarket electronic module that plugs in between the accelerator pedal and the engine control unit (ECU) in vehicles equipped with an electronic throttle control. Sprint Booster is an application-specific hardware based product designed specifically for your car. This device is engineered to improve acceleration on drive by-wire cars by continuously measuring and converting the digital signal providing the ECM (Electronic Control Module) with a new and altered signal. Many modern vehicles utilize electronic throttle control and more vehicles are going that way, especially performance and sports cars. In conventional throttle systems, the accelerator pedal is connected to the throttle by a cable. In electronic throttle control systems, the accelerator pedal is connected to a sensor that sends a signal to the ECU that operates the throttle. The ECU increases or decreases throttle effort based on your accelerator pedal input, however this doesn’t always translate to instant response. Things like pedal sensitivity, stability control and traction control systems can vary on different vehicles and can also lead to larger lag in throttle response and acceleration when its go-time. Sprint Booster improves response, increases pedal input sensitivity and delivers more impressive off the line performance. This product does not alter fuel or ignition in your vehicle; it’s a simple plug-n-play mod that delivers instant response throughout the power band, making accelerating and revs matching incredibly more fun.",,,

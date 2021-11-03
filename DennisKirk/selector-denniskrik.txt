@@ -1,0 +1,1 @@
+{"_id":"dennis-kirk-harley","startUrl":["https://www.denniskirk.com/snowmobile/apparel/100.ipp/[1-41].pg"],"selectors":[{"delay":0,"id":"names","multiple":true,"parentSelectors":["_root"],"regex":"","selector":"a[itemprop='url']","type":"SelectorText"}]}

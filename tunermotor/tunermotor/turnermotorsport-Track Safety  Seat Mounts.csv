@@ -1,0 +1,167 @@
+product-img-link href,product-img-link src,cleanDesc,part-info,part-info 2,price,cart-btn-wrapper,cart-btn-wrapper 2,cart-btn-wrapper 3,short-description
+https://www.turnermotorsport.com/p-583283-racetech-rt-series-seat-mounts-3mm-steel/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/1327408_x300.jpg,Racetech RT Series Seat Mounts - 3mm Steel,583283,RTB1003S,$52.00,".product-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-card img {
+    order: 1;
+    border: 1px solid var(--pc-border-color, var(--input-border-color, #ccc));
+    margin-bottom: 1rem;
+    max-width: 100%;
+}
+
+.product-card h5 {
+    order: 2;
+    margin: 0 0 .5rem;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.cart-modal .btn-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-gap: 1rem;
+    margin: 1.5rem 0 0;
+}
+
+.cart-modal .warning-msg {
+    border: 1px solid var(--color-warning, var(--warning));
+    color: var(--color-warning, var(--warning));
+    border-radius: var(--default-border-radius);
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 36rem) {
+    .cart-modal .btn-wrapper {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}","const cartBtns = document.getElementsByClassName('js-cart-btn');
+const cartQty = Number(0);
+let cartModal, errorMsg;
+
+for ( const btn of cartBtns ) {
+    const badge = btn.querySelector('.js-cart-qty');
+    badge.addEventListener('animationend', () => {
+        badge.classList.remove('updated');
+    });
+}
+
+const initMiniCart = () => {
+    const cartTemplate = document.getElementById('mini-cart');
+    const miniCart = cartTemplate.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(miniCart);
+    cartModal = document.getElementById('cartModal');
+    cartTemplate.remove();
+};
+
+const setCart = async ( id, isPDK = false ) => {
+    const params = (isPDK) ? addPDKToCart(id) : false;
+    const result = await addToCart(id, params);
+    const productCard = cartModal.querySelector('.product-card');
+    const cardElements = {
+        img: productCard.querySelector('img'),
+        title: productCard.querySelector('.product-title'),
+    }
+
+    if ( errorMsg ) errorMsg.remove();
+
+    if ( result.data[0].error ) {
+        errorMsg = document.createElement('div');
+        errorMsg.classList.add('msg', 'warning-msg');
+        errorMsg.innerHTML = result.data[0].error;
+        cartModal.querySelector('.modal-title').innerHTML = 'Oops, There Was An Error!';
+        cartModal.querySelector('.modal-content').insertBefore(errorMsg, productCard);
+    } else {
+        const productData = result.data[0].cartItem;
+        cartModal.querySelector('.modal-title').innerHTML = `T# ${productData.productID} (Qty ${productData.qtyAdded}) Added to Cart`;
+        if ( productData.mainImage) {
+            cardElements.img.src = `https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/${productData.mainImage}_x300.jpg`;
+        } else {
+            cardElements.img.src = 'https://1c2a8a2161d644d95009-22d26b38e78c173d82b3a9a01c774ffa.ssl.cf1.rackcdn.com/skins/Skin_1/images/tms_box_no_image.jpg';
+        }
+        cardElements.img.setAttribute('alt', productData.clean_description);
+        cardElements.title.innerHTML = productData.clean_description;
+    }
+
+    return result;
+};
+
+const updateCartBtn = (btn, qty) => {
+    if ( qty != 0 ) {
+        const badge = btn.querySelector('.js-cart-qty');
+        badge.classList.add('updated');
+        const newQty = Number(badge.innerHTML) + qty;
+        badge.innerHTML = newQty;
+        btn.setAttribute('title', `You have ${newQty} item(s) in your cart`);
+    }
+};
+
+const showCart = ( response, resolve ) => {
+    const $cartModal = $('#cartModal');
+    $cartModal.modal('show');
+    $cartModal.one('shown.bs.modal', resolve );
+    for ( const btn of cartBtns ) {
+        if ( response.data[0].cartItem ) {
+            updateCartBtn(btn, Number(response.data[0].cartItem.qtyAdded));
+        }
+    }
+};
+
+window.addEventListener('atcReady', initMiniCart, {once: true});","let pdkCart = false;
+
+    
+
+    const atcFunc = ( pdkCart ) ? 'addPDKToCart' : 'addToCart';
+    let atcBtns, activeBtn;
+
+    const initATC = () => {
+        atcBtns = Array.from( document.getElementsByClassName('js-atc-btn') );
+        atcBtns.forEach( btn => {
+            btn.addEventListener('click', e => {
+                atcBtns.forEach( atcBtn => { disableBtn(atcBtn) } );
+                activeBtn = e.target;
+                setLoading(activeBtn);
+                if ( useMiniCart ) {
+                    setCart( activeBtn.dataset.productid, pdkCart )
+                    .then( data => {
+                        let pShowCart = new Promise( (resolve, reject) => {
+                            showCart( data, resolve );
+                        } );
+                        pShowCart.then( () => {
+                            atcBtns.forEach( btn => { enableBtn(btn) } );
+                            clearLoading(activeBtn);
+                        } );
+                    });
+                } else {
+                    window[atcFunc]( activeBtn.dataset.productid );
+                }
+            });
+            enableBtn(btn);
+            clearLoading(btn);
+        });
+    };
+
+    const setLoading = btn => {
+        btn.classList.add('loading');
+    };
+
+    const clearLoading = btn => {
+        btn.classList.remove('loading');
+    };
+
+    const disableBtn = btn => {
+        btn.disabled = true;
+    };
+
+    const enableBtn = btn => {
+        btn.disabled = false;
+    };
+
+    window.addEventListener( 'atcReady', initATC, {once: true} );","Racetech zinc-plated, 3mm steel brackets for side-mounting seats. Sold as a pair."
+https://www.turnermotorsport.com/p-583282-racetech-rt-series-seat-mounts-5mm-aluminum/,https://3a663eb0fef48c6d2d60-a88f8ebfcdb877ad223e888bfcb7f7ec.ssl.cf1.rackcdn.com/1327410_x300.jpg,Racetech RT Series Seat Mounts - 5mm Aluminum,583282,RTB1005M,$108.00,,,,Racetech milled aluminum bracket for side-mounting seats. Same shape as the RTB1003S but half the weight. 5mm thick 5083 alloy. Sold as a pair.
+https://www.turnermotorsport.com/p-589507-universal-slider-standard-width-292-mm/,https://1c2a8a2161d644d95009-22d26b38e78c173d82b3a9a01c774ffa.ssl.cf1.rackcdn.com/skins/Skin_1/images/tms_box_no_image.jpg,Racetech Universal Seat Slider,589507,RTSLIDESTD,$109.00,,,,Standard Width 292mm
+https://www.turnermotorsport.com/p-589506-universal-slider-wide-width-405-mm/,https://1c2a8a2161d644d95009-22d26b38e78c173d82b3a9a01c774ffa.ssl.cf1.rackcdn.com/skins/Skin_1/images/tms_box_no_image.jpg,Racetech Universal Seat Slider,589506,RTSLIDEW,$109.00,,,,Wide Width 405mm
